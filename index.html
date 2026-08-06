@@ -68,6 +68,13 @@
     cursor: pointer;
   }
   button:disabled { opacity: .5; cursor: default; }
+  textarea {
+    width: 100%; padding: .6rem .7rem; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--bg); color: var(--ink);
+    font-family: ui-monospace, monospace; font-size: .8rem; min-height: 96px;
+    margin-bottom: .8rem; box-sizing: border-box; resize: vertical;
+  }
+  .card-label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: .4rem; }
   .hint { color: var(--muted); font-size: .8rem; text-align: center; margin-top: .6rem; line-height: 1.5; }
   footer { margin-top: auto; padding-top: 1.5rem; font-size: .8rem; color: var(--muted); }
   footer a { color: var(--accent); }
@@ -95,6 +102,12 @@
       <dt>Date</dt><dd id="f-date"></dd>
       <dt>Serial</dt><dd id="f-serial"></dd>
     </dl>
+  </div>
+
+  <div class="card" id="paste-card">
+    <label class="card-label" for="code-input">Or paste a Makozumi code (the full tag URL or just the code)</label>
+    <textarea id="code-input" placeholder="eyJ2IjoxLCJzbiI6…  or  https://…/makozumi/#eyJ2…"></textarea>
+    <button id="verify-btn">Verify code</button>
   </div>
 
   <div class="card" id="scan-card">
@@ -247,6 +260,17 @@ async function scan() {
     $("scan-hint").textContent = "NFC scan failed or was blocked: " + e.message;
   }
 }
+
+$("verify-btn").addEventListener("click", () => {
+  const text = $("code-input").value.trim();
+  if (!text) return;
+  const token = tokenFromUrl(text) || (text.includes(".") ? text : null);
+  if (token) {
+    verifyToken(token);
+  } else {
+    setStatus("bad", "✕ NOT AUTHENTIC", "That doesn’t look like a Makozumi code — expected two dot-separated parts or a tag URL.");
+  }
+});
 
 $("scan-btn").addEventListener("click", scan);
 window.addEventListener("hashchange", checkFragment);
