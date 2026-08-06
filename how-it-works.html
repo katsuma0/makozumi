@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Makozumi — How the Cryptography Works</title>
+<style>
+  :root {
+    --bg: #f6f4ef; --card: #ffffff; --ink: #1a1a1a; --muted: #6b6b6b;
+    --line: #e3e0d8; --accent: #b3402a; --code-bg: #eeece5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161513; --card: #201f1c; --ink: #ece9e2; --muted: #a5a19a;
+      --line: #35332e; --accent: #e06046; --code-bg: #2a2926;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    background: var(--bg); color: var(--ink);
+    display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem;
+    line-height: 1.65;
+  }
+  .wrap { width: 100%; max-width: 640px; }
+  h1 { font-size: 1.3rem; letter-spacing: .25em; text-transform: uppercase; text-align: center; margin-bottom: .3rem; }
+  .sub { text-align: center; color: var(--muted); font-size: .85rem; margin-bottom: 1.5rem; }
+  h2 { font-size: 1.05rem; margin: 1.6rem 0 .5rem; color: var(--accent); }
+  p, li { font-size: .95rem; margin-bottom: .7rem; }
+  ol, ul { padding-left: 1.3rem; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 1.6rem; }
+  code, .math {
+    font-family: ui-monospace, "SF Mono", monospace; font-size: .85em;
+    background: var(--code-bg); border-radius: 4px; padding: .1em .35em;
+  }
+  .math.block { display: block; padding: .7em 1em; margin: .6rem 0; overflow-x: auto; }
+  em { color: var(--muted); }
+  a { color: var(--accent); }
+  footer { text-align: center; font-size: .8rem; margin-top: 1.2rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>How It Works</h1>
+  <div class="sub">The cryptography behind a Makozumi tag</div>
+
+  <div class="card">
+    <h2>The idea: a signature only one person can write</h2>
+    <p>Each Makozumi tag stores a short message (the product's name, maker, date, and
+    serial number) together with a <strong>digital signature</strong> of that message.
+    The signature is created with a <em>private key</em> that only the maker holds.
+    This website contains only the matching <em>public key</em>, which can
+    <strong>check</strong> signatures but cannot <strong>create</strong> them.</p>
+    <p>That asymmetry is the whole trick: anyone in the world can verify a tag,
+    but nobody can mint a new one — copying the code from one product onto another
+    product of the same kind is the only "attack" left, and the serial number in the
+    signed payload exposes duplicates.</p>
+
+    <h2>The scheme: ECDSA over the curve P-256</h2>
+    <p>Makozumi uses the <strong>Elliptic Curve Digital Signature Algorithm</strong>
+    on the NIST curve P-256. The curve is the set of points <span class="math">(x, y)</span>
+    satisfying</p>
+    <span class="math block">y² ≡ x³ − 3x + b&nbsp;&nbsp;(mod p)</span>
+    <p>where <span class="math">p</span> is a fixed 256-bit prime. Points on this curve
+    form a finite abelian group: there is a rule for "adding" two points that yields a
+    third point on the curve. Repeated addition gives scalar multiplication,
+    <span class="math">kG = G + G + … + G</span> (k times), for a fixed public base
+    point <span class="math">G</span> of large prime order <span class="math">n</span>.</p>
+
+    <h2>Keys</h2>
+    <ul>
+      <li><strong>Private key:</strong> a random integer <span class="math">d</span>
+      with <span class="math">1 &lt; d &lt; n</span>.</li>
+      <li><strong>Public key:</strong> the curve point <span class="math">Q = dG</span>.</li>
+    </ul>
+    <p>Computing <span class="math">Q</span> from <span class="math">d</span> is fast
+    (double-and-add, like fast exponentiation). Recovering <span class="math">d</span>
+    from <span class="math">Q</span> is the <strong>elliptic curve discrete logarithm
+    problem (ECDLP)</strong> — for a 256-bit curve the best known attacks need about
+    <span class="math">2¹²⁸</span> group operations, which is computationally infeasible.
+    This is the elliptic-curve analogue of the discrete logarithm problem in
+    <span class="math">(ℤ/pℤ)*</span>, and it is why publishing <span class="math">Q</span>
+    on this very page gives forgers nothing.</p>
+
+    <h2>Signing a tag (done once, offline, by the maker)</h2>
+    <ol>
+      <li>Encode the product info as a message <span class="math">m</span> and hash it:
+      <span class="math">e = SHA-256(m)</span>. The hash compresses the message to a fixed-size
+      value and makes it infeasible to find a second message with the same hash.</li>
+      <li>Pick a fresh random nonce <span class="math">k</span>, compute the point
+      <span class="math">kG</span> and take <span class="math">r = (kG)ₓ mod n</span>
+      (the x-coordinate).</li>
+      <li>Compute <span class="math">s = k⁻¹(e + r·d) mod n</span> — this is where the
+      private key <span class="math">d</span> enters. (<span class="math">k⁻¹</span> is a
+      modular inverse, found with the extended Euclidean algorithm.)</li>
+      <li>The signature is the pair <span class="math">(r, s)</span> — just 64 bytes.</li>
+    </ol>
+
+    <h2>Verifying a tag (done by this page, every time you tap)</h2>
+    <ol>
+      <li>Recompute the hash <span class="math">e = SHA-256(m)</span> from the payload in the URL.</li>
+      <li>Compute <span class="math">u₁ = e·s⁻¹ mod n</span> and
+      <span class="math">u₂ = r·s⁻¹ mod n</span>.</li>
+      <li>Compute the point <span class="math">P = u₁G + u₂Q</span> using only
+      <em>public</em> values.</li>
+      <li>Accept iff <span class="math">Pₓ mod n = r</span>.</li>
+    </ol>
+    <p>Substituting <span class="math">Q = dG</span> shows
+    <span class="math">P = (u₁ + u₂d)G = kG</span> exactly when the signature was made
+    with the true private key — so a genuine tag always verifies, and forging one
+    without <span class="math">d</span> would require solving the ECDLP.</p>
+
+    <h2>What's actually on the NFC chip</h2>
+    <p>The tag stores a single URL:</p>
+    <span class="math block">https://katsuma0.github.io/makozumi/#&lt;base64(payload)&gt;.&lt;base64(r‖s)&gt;</span>
+    <p>Tapping the tag opens this site; the JavaScript here runs the verification above
+    using the browser's built-in WebCrypto implementation of ECDSA. If even one bit of the
+    payload is altered, the hash <span class="math">e</span> changes and the check fails —
+    the page shows <strong>NOT AUTHENTIC</strong>.</p>
+
+    <h2>Why "somewhat basic" crypto is enough here</h2>
+    <p>Nothing on the tag is secret — the security rests entirely on one clean, standard
+    hardness assumption (ECDLP) and one standard primitive (ECDSA + SHA-256), both of
+    which secure TLS, passports, and payment cards today. The system needs no server,
+    no database, and no secrets on the tag or in this site.</p>
+  </div>
+
+  <footer><a href="index.html">← back to verifier</a></footer>
+</div>
+</body>
+</html>

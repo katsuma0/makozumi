@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Makozumi — Authenticity Check</title>
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --card: #ffffff;
+    --ink: #1a1a1a;
+    --muted: #6b6b6b;
+    --line: #e3e0d8;
+    --accent: #b3402a;
+    --ok: #1e7d43;
+    --ok-bg: #e8f5ec;
+    --bad: #b3261e;
+    --bad-bg: #fdeceb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161513;
+      --card: #201f1c;
+      --ink: #ece9e2;
+      --muted: #a5a19a;
+      --line: #35332e;
+      --accent: #e06046;
+      --ok: #4cc07a;
+      --ok-bg: #12281a;
+      --bad: #ef7a73;
+      --bad-bg: #33191a;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    background: var(--bg); color: var(--ink);
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    padding: 2rem 1rem;
+  }
+  .wrap { width: 100%; max-width: 480px; }
+  header { text-align: center; margin-bottom: 1.5rem; }
+  .seal {
+    width: 64px; height: 64px; margin: 0 auto .75rem;
+    border: 3px solid var(--accent); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent); font-size: 1.9rem; font-weight: 700;
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+  }
+  h1 { font-size: 1.5rem; letter-spacing: .35em; text-transform: uppercase; }
+  .tagline { color: var(--muted); font-size: .85rem; margin-top: .35rem; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 1.5rem; margin-bottom: 1rem;
+  }
+  .status { text-align: center; padding: 1.25rem; border-radius: 10px; margin-bottom: 1rem; }
+  .status .big { font-size: 1.3rem; font-weight: 700; letter-spacing: .12em; }
+  .status .sub { font-size: .85rem; margin-top: .3rem; }
+  .status.ok { background: var(--ok-bg); color: var(--ok); }
+  .status.bad { background: var(--bad-bg); color: var(--bad); }
+  .status.wait { background: transparent; color: var(--muted); border: 1px dashed var(--line); }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: .55rem 1rem; font-size: .95rem; }
+  dt { color: var(--muted); }
+  dd { font-weight: 600; overflow-wrap: anywhere; }
+  button {
+    width: 100%; padding: .8rem; border: none; border-radius: 10px;
+    background: var(--accent); color: #fff; font-size: 1rem; font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: default; }
+  .hint { color: var(--muted); font-size: .8rem; text-align: center; margin-top: .6rem; line-height: 1.5; }
+  footer { margin-top: auto; padding-top: 1.5rem; font-size: .8rem; color: var(--muted); }
+  footer a { color: var(--accent); }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="seal">真</div>
+    <h1>Makozumi</h1>
+    <div class="tagline">Cryptographic product authentication</div>
+  </header>
+
+  <div id="status" class="status wait">
+    <div class="big">TAP A TAG</div>
+    <div class="sub">Tap a Makozumi NFC tag with your phone, or scan below.</div>
+  </div>
+
+  <div id="info" class="card hidden">
+    <dl>
+      <dt>Product</dt><dd id="f-product"></dd>
+      <dt>Type</dt><dd id="f-type"></dd>
+      <dt>Made by</dt><dd id="f-owner"></dd>
+      <dt>Date</dt><dd id="f-date"></dd>
+      <dt>Serial</dt><dd id="f-serial"></dd>
+    </dl>
+  </div>
+
+  <div class="card" id="scan-card">
+    <button id="scan-btn">Scan a tag with this phone</button>
+    <div class="hint" id="scan-hint">
+      Direct in-browser scanning needs Web&nbsp;NFC (Android + Chrome).
+      On iPhone, just tap the tag — it opens this page automatically.
+    </div>
+  </div>
+
+  <footer><a href="how-it-works.html">How the cryptography works</a></footer>
+</div>
+
+<script>
+// ============================================================
+// Makozumi verifier — ECDSA P-256 (NIST curve secp256r1)
+//
+// The tag URL fragment carries:  base64url(payload JSON) "." base64url(signature)
+// The signature was produced with the Makozumi PRIVATE key (held offline).
+// This page holds only the PUBLIC key below, which can VERIFY signatures
+// but — by the hardness of the elliptic-curve discrete logarithm problem —
+// cannot be used to CREATE them. So anyone can check a tag; only the
+// private-key holder can mint one.
+// ============================================================
+
+const PUBLIC_KEY_JWK = {
+  kty: "EC",
+  crv: "P-256",
+  x: "sx2H14imF2Nnbvqu851Plz6Ix6Ln0j1EOr29uIYgYCk",
+  y: "UpJseEdlrvRy4jrGvJ5Kq_FkVJLgRQZU7tHfj6rgeSM"
+};
+
+const $ = (id) => document.getElementById(id);
+
+function b64urlToBytes(s) {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  const bin = atob(s);
+  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+}
+
+async function importPublicKey() {
+  return crypto.subtle.importKey(
+    "jwk", PUBLIC_KEY_JWK,
+    { name: "ECDSA", namedCurve: "P-256" },
+    false, ["verify"]
+  );
+}
+
+function setStatus(cls, big, sub) {
+  const el = $("status");
+  el.className = "status " + cls;
+  el.innerHTML = '<div class="big"></div><div class="sub"></div>';
+  el.querySelector(".big").textContent = big;
+  el.querySelector(".sub").textContent = sub;
+}
+
+function showInfo(p) {
+  $("f-product").textContent = p.p || "—";
+  $("f-type").textContent = p.t || "—";
+  $("f-owner").textContent = p.o || "—";
+  $("f-date").textContent = p.d || "—";
+  $("f-serial").textContent = p.sn || "—";
+  $("info").classList.remove("hidden");
+}
+
+async function verifyToken(token) {
+  $("info").classList.add("hidden");
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 2) throw new Error("malformed token");
+    const [payloadB64, sigB64] = parts;
+
+    // Verify the ECDSA signature over the payload bytes.
+    const key = await importPublicKey();
+    const valid = await crypto.subtle.verify(
+      { name: "ECDSA", hash: "SHA-256" },
+      key,
+      b64urlToBytes(sigB64),
+      new TextEncoder().encode(payloadB64)
+    );
+
+    if (!valid) {
+      setStatus("bad", "✕ NOT AUTHENTIC", "The signature does not match. This tag was not issued by Makozumi, or its data was altered.");
+      return;
+    }
+
+    const payload = JSON.parse(new TextDecoder().decode(b64urlToBytes(payloadB64)));
+    setStatus("ok", "✓ AUTHENTIC", "Signature verified against the Makozumi public key.");
+    showInfo(payload);
+  } catch (e) {
+    setStatus("bad", "✕ NOT AUTHENTIC", "This tag could not be read as a valid Makozumi token.");
+  }
+}
+
+function tokenFromUrl(urlish) {
+  // Accept a full URL (from NFC scan) or use this page's own fragment.
+  try {
+    const u = new URL(urlish);
+    return u.hash ? u.hash.slice(1) : null;
+  } catch { return null; }
+}
+
+function checkFragment() {
+  const token = location.hash.slice(1);
+  if (token) verifyToken(token);
+}
+
+// --- Web NFC (Android Chrome) -------------------------------
+async function scan() {
+  if (!("NDEFReader" in window)) {
+    $("scan-hint").textContent = "Web NFC isn’t available in this browser. Tap the tag with your phone instead — it opens this page automatically.";
+    return;
+  }
+  const btn = $("scan-btn");
+  try {
+    const reader = new NDEFReader();
+    await reader.scan();
+    btn.disabled = true;
+    btn.textContent = "Hold the tag to your phone…";
+    reader.onreading = (event) => {
+      for (const record of event.message.records) {
+        let text = null;
+        if (record.recordType === "url" || record.recordType === "text") {
+          text = new TextDecoder().decode(record.data);
+        }
+        if (!text) continue;
+        const token = tokenFromUrl(text) || (text.includes(".") ? text : null);
+        if (token) {
+          verifyToken(token);
+          btn.disabled = false;
+          btn.textContent = "Scan a tag with this phone";
+          return;
+        }
+      }
+      setStatus("bad", "✕ NOT AUTHENTIC", "The scanned tag doesn’t contain a Makozumi token.");
+      btn.disabled = false;
+      btn.textContent = "Scan a tag with this phone";
+    };
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = "Scan a tag with this phone";
+    $("scan-hint").textContent = "NFC scan failed or was blocked: " + e.message;
+  }
+}
+
+$("scan-btn").addEventListener("click", scan);
+window.addEventListener("hashchange", checkFragment);
+checkFragment();
+</script>
+</body>
+</html>

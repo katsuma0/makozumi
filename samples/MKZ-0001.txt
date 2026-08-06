@@ -1,0 +1,4 @@
+Makozumi tag MKZ-0001 — "Katsuma 2026 Log" (Notebook) by Katsuma Onishi, 2026-08-06
+Write this URL to the NFC tag as a URL record:
+
+https://katsuma0.github.io/makozumi/#eyJ2IjoxLCJzbiI6Ik1LWi0wMDAxIiwicCI6IkthdHN1bWEgMjAyNiBMb2ciLCJ0IjoiTm90ZWJvb2siLCJvIjoiS2F0c3VtYSBPbmlzaGkiLCJkIjoiMjAyNi0wOC0wNiJ9.FizeiYeGhU8uDKepGK8OfMkhEnHUWbV3Fm1H7moU603H1SseaSDFFzY4QQ6t1FfhpgApJHLpYtdIt5cN6iHg0w
