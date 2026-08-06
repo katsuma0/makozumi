@@ -4,72 +4,79 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Makozumi — Authenticity Check</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f6f4ef;
-    --card: #ffffff;
-    --ink: #1a1a1a;
-    --muted: #6b6b6b;
-    --line: #e3e0d8;
-    --accent: #b3402a;
-    --ok: #1e7d43;
-    --ok-bg: #e8f5ec;
-    --bad: #b3261e;
-    --bad-bg: #fdeceb;
+    --bg: #f6f2e9;
+    --card: #fdfbf5;
+    --ink: #26221e;
+    --muted: #877f73;
+    --line: #e2dac9;
+    --accent: #c73e2e;
+    --ok: #48725a;
+    --ok-bg: #eaf1ea;
+    --bad: #a83226;
+    --bad-bg: #f7e9e5;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #161513;
-      --card: #201f1c;
-      --ink: #ece9e2;
-      --muted: #a5a19a;
-      --line: #35332e;
-      --accent: #e06046;
-      --ok: #4cc07a;
-      --ok-bg: #12281a;
-      --bad: #ef7a73;
-      --bad-bg: #33191a;
+      --bg: #16130f;
+      --card: #1e1a15;
+      --ink: #eae3d6;
+      --muted: #9c9384;
+      --line: #37312a;
+      --accent: #e0563f;
+      --ok: #7fb08f;
+      --ok-bg: #1c2a20;
+      --bad: #e08573;
+      --bad-bg: #33201b;
     }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    font-family: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
     background: var(--bg); color: var(--ink);
     min-height: 100vh; display: flex; flex-direction: column; align-items: center;
-    padding: 2rem 1rem;
+    padding: 2.5rem 1rem;
   }
   .wrap { width: 100%; max-width: 480px; }
-  header { text-align: center; margin-bottom: 1.5rem; }
-  .seal {
-    width: 64px; height: 64px; margin: 0 auto .75rem;
-    border: 3px solid var(--accent); border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--accent); font-size: 1.9rem; font-weight: 700;
-    font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+  header { text-align: center; margin-bottom: 2rem; }
+  header::after {
+    content: ""; display: block; width: 44px; height: 1px;
+    background: var(--accent); margin: 1.1rem auto 0;
   }
-  h1 { font-size: 1.5rem; letter-spacing: .35em; text-transform: uppercase; }
-  .tagline { color: var(--muted); font-size: .85rem; margin-top: .35rem; }
+  .seal {
+    width: 60px; height: 60px; margin: 0 auto .9rem;
+    background: var(--accent); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 1.8rem; font-weight: 700;
+    box-shadow: 0 1px 0 rgba(0,0,0,.08);
+  }
+  h1 { font-size: 1.4rem; font-weight: 500; letter-spacing: .5em; text-transform: uppercase; padding-left: .5em; }
+  .tagline { color: var(--muted); font-size: .85rem; letter-spacing: .22em; margin-top: .5rem; text-transform: uppercase; }
   .card {
-    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 5px;
     padding: 1.5rem; margin-bottom: 1rem;
   }
-  .status { text-align: center; padding: 1.25rem; border-radius: 10px; margin-bottom: 1rem; }
-  .status .big { font-size: 1.3rem; font-weight: 700; letter-spacing: .12em; }
-  .status .sub { font-size: .85rem; margin-top: .3rem; }
-  .status.ok { background: var(--ok-bg); color: var(--ok); }
-  .status.bad { background: var(--bad-bg); color: var(--bad); }
+  .status { text-align: center; padding: 1.25rem; border-radius: 5px; margin-bottom: 1rem; }
+  .status .big { font-size: 1.25rem; font-weight: 700; letter-spacing: .18em; }
+  .status .sub { font-size: .85rem; margin-top: .35rem; }
+  .status.ok { background: var(--ok-bg); color: var(--ok); border: 1px solid currentColor; }
+  .status.bad { background: var(--bad-bg); color: var(--bad); border: 1px solid currentColor; }
   .status.wait { background: transparent; color: var(--muted); border: 1px dashed var(--line); }
   dl { display: grid; grid-template-columns: auto 1fr; gap: .55rem 1rem; font-size: .95rem; }
   dt { color: var(--muted); }
-  dd { font-weight: 600; overflow-wrap: anywhere; }
+  dd { font-weight: 700; overflow-wrap: anywhere; }
   button {
-    width: 100%; padding: .8rem; border: none; border-radius: 10px;
-    background: var(--accent); color: #fff; font-size: 1rem; font-weight: 600;
-    cursor: pointer;
+    width: 100%; padding: .8rem; border: none; border-radius: 3px;
+    background: var(--accent); color: #fff; font-size: .95rem; font-weight: 700;
+    letter-spacing: .12em; font-family: inherit; cursor: pointer;
   }
   button:disabled { opacity: .5; cursor: default; }
   textarea {
-    width: 100%; padding: .6rem .7rem; border: 1px solid var(--line); border-radius: 8px;
+    width: 100%; padding: .6rem .7rem; border: 1px solid var(--line); border-radius: 3px;
     background: var(--bg); color: var(--ink);
     font-family: ui-monospace, monospace; font-size: .8rem; min-height: 96px;
     margin-bottom: .8rem; box-sizing: border-box; resize: vertical;

@@ -4,31 +4,34 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Makozumi — How the Cryptography Works</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f6f4ef; --card: #ffffff; --ink: #1a1a1a; --muted: #6b6b6b;
-    --line: #e3e0d8; --accent: #b3402a; --code-bg: #eeece5;
+    --bg: #f6f2e9; --card: #fdfbf5; --ink: #26221e; --muted: #877f73;
+    --line: #e2dac9; --accent: #c73e2e; --code-bg: #efe9db;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #161513; --card: #201f1c; --ink: #ece9e2; --muted: #a5a19a;
-      --line: #35332e; --accent: #e06046; --code-bg: #2a2926;
+      --bg: #16130f; --card: #1e1a15; --ink: #eae3d6; --muted: #9c9384;
+      --line: #37312a; --accent: #e0563f; --code-bg: #2a251e;
     }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    font-family: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
     background: var(--bg); color: var(--ink);
-    display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem;
-    line-height: 1.65;
+    display: flex; flex-direction: column; align-items: center; padding: 2.5rem 1rem;
+    line-height: 1.75;
   }
   .wrap { width: 100%; max-width: 640px; }
-  h1 { font-size: 1.3rem; letter-spacing: .25em; text-transform: uppercase; text-align: center; margin-bottom: .3rem; }
-  .sub { text-align: center; color: var(--muted); font-size: .85rem; margin-bottom: 1.5rem; }
-  h2 { font-size: 1.05rem; margin: 1.6rem 0 .5rem; color: var(--accent); }
+  h1 { font-size: 1.25rem; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; text-align: center; margin-bottom: .3rem; padding-left: .4em; }
+  .sub { text-align: center; color: var(--muted); font-size: .85rem; letter-spacing: .1em; margin-bottom: 1.6rem; }
+  h2 { font-size: 1.05rem; font-weight: 700; margin: 1.8rem 0 .5rem; color: var(--accent); }
   p, li { font-size: .95rem; margin-bottom: .7rem; }
   ol, ul { padding-left: 1.3rem; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 1.6rem; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 5px; padding: 1.7rem; }
   code, .math {
     font-family: ui-monospace, "SF Mono", monospace; font-size: .85em;
     background: var(--code-bg); border-radius: 4px; padding: .1em .35em;

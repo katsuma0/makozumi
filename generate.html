@@ -4,41 +4,45 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Makozumi — Tag Generator (private)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f6f4ef; --card: #ffffff; --ink: #1a1a1a; --muted: #6b6b6b;
-    --line: #e3e0d8; --accent: #b3402a; --warn-bg: #fff4e0; --warn: #8a5a00;
+    --bg: #f6f2e9; --card: #fdfbf5; --ink: #26221e; --muted: #877f73;
+    --line: #e2dac9; --accent: #c73e2e; --warn-bg: #f6ecd8; --warn: #8a6118;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #161513; --card: #201f1c; --ink: #ece9e2; --muted: #a5a19a;
-      --line: #35332e; --accent: #e06046; --warn-bg: #33280f; --warn: #e6b45a;
+      --bg: #16130f; --card: #1e1a15; --ink: #eae3d6; --muted: #9c9384;
+      --line: #37312a; --accent: #e0563f; --warn-bg: #2e2617; --warn: #d9b36a;
     }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    font-family: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
     background: var(--bg); color: var(--ink);
-    display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem;
+    display: flex; flex-direction: column; align-items: center; padding: 2.5rem 1rem;
   }
   .wrap { width: 100%; max-width: 560px; }
-  h1 { font-size: 1.3rem; letter-spacing: .25em; text-transform: uppercase; text-align: center; }
-  .sub { text-align: center; color: var(--muted); font-size: .85rem; margin: .4rem 0 1.2rem; }
+  h1 { font-size: 1.25rem; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; text-align: center; padding-left: .4em; }
+  .sub { text-align: center; color: var(--muted); font-size: .85rem; letter-spacing: .1em; margin: .5rem 0 1.4rem; }
   .warn {
-    background: var(--warn-bg); color: var(--warn); border-radius: 10px;
+    background: var(--warn-bg); color: var(--warn); border: 1px solid currentColor; border-radius: 5px;
     padding: .8rem 1rem; font-size: .85rem; margin-bottom: 1rem; line-height: 1.5;
   }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 5px; padding: 1.5rem; margin-bottom: 1rem; }
   label { display: block; font-size: .8rem; color: var(--muted); margin: .9rem 0 .25rem; }
   label:first-child { margin-top: 0; }
   input, textarea {
-    width: 100%; padding: .6rem .7rem; border: 1px solid var(--line); border-radius: 8px;
+    width: 100%; padding: .6rem .7rem; border: 1px solid var(--line); border-radius: 3px;
     background: var(--bg); color: var(--ink); font-size: .95rem; font-family: inherit;
   }
   textarea { font-family: ui-monospace, monospace; font-size: .8rem; min-height: 88px; }
   button {
-    width: 100%; padding: .8rem; margin-top: 1.2rem; border: none; border-radius: 10px;
-    background: var(--accent); color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer;
+    width: 100%; padding: .8rem; margin-top: 1.2rem; border: none; border-radius: 3px;
+    background: var(--accent); color: #fff; font-size: .95rem; font-weight: 700;
+    letter-spacing: .12em; font-family: inherit; cursor: pointer;
   }
   .out { margin-top: 1rem; }
   .out textarea { min-height: 120px; }
