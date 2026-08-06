@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Makozumi — Tag Generator (private)</title>
+<style>
+  :root {
+    --bg: #f6f4ef; --card: #ffffff; --ink: #1a1a1a; --muted: #6b6b6b;
+    --line: #e3e0d8; --accent: #b3402a; --warn-bg: #fff4e0; --warn: #8a5a00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161513; --card: #201f1c; --ink: #ece9e2; --muted: #a5a19a;
+      --line: #35332e; --accent: #e06046; --warn-bg: #33280f; --warn: #e6b45a;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    background: var(--bg); color: var(--ink);
+    display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem;
+  }
+  .wrap { width: 100%; max-width: 560px; }
+  h1 { font-size: 1.3rem; letter-spacing: .25em; text-transform: uppercase; text-align: center; }
+  .sub { text-align: center; color: var(--muted); font-size: .85rem; margin: .4rem 0 1.2rem; }
+  .warn {
+    background: var(--warn-bg); color: var(--warn); border-radius: 10px;
+    padding: .8rem 1rem; font-size: .85rem; margin-bottom: 1rem; line-height: 1.5;
+  }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 1.5rem; margin-bottom: 1rem; }
+  label { display: block; font-size: .8rem; color: var(--muted); margin: .9rem 0 .25rem; }
+  label:first-child { margin-top: 0; }
+  input, textarea {
+    width: 100%; padding: .6rem .7rem; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--bg); color: var(--ink); font-size: .95rem; font-family: inherit;
+  }
+  textarea { font-family: ui-monospace, monospace; font-size: .8rem; min-height: 88px; }
+  button {
+    width: 100%; padding: .8rem; margin-top: 1.2rem; border: none; border-radius: 10px;
+    background: var(--accent); color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer;
+  }
+  .out { margin-top: 1rem; }
+  .out textarea { min-height: 120px; }
+  .err { color: #c0392b; font-size: .85rem; margin-top: .8rem; }
+  .ok-note { color: var(--muted); font-size: .8rem; margin-top: .5rem; }
+  a { color: var(--accent); }
+  footer { text-align: center; font-size: .8rem; margin-top: .5rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Makozumi Generator</h1>
+  <div class="sub">Mint a signed tag for a new product</div>
+
+  <div class="warn">
+    ⚠ Private tool. Signing happens entirely in your browser — nothing is uploaded.
+    Only someone holding the Makozumi <strong>private key</strong> can produce a valid tag;
+    without it this page generates nothing useful.
+  </div>
+
+  <div class="card">
+    <label for="privkey">Private key (JWK JSON — paste from your safe storage)</label>
+    <textarea id="privkey" placeholder='{"kty":"EC","crv":"P-256","x":"...","y":"...","d":"..."}'></textarea>
+
+    <label for="p">Product name</label>
+    <input id="p" placeholder="Katsuma 2026 Log">
+
+    <label for="t">Product type</label>
+    <input id="t" placeholder="Notebook">
+
+    <label for="o">Made by</label>
+    <input id="o" value="Katsuma Onishi">
+
+    <label for="d">Date</label>
+    <input id="d" type="date">
+
+    <label for="sn">Serial number</label>
+    <input id="sn" placeholder="MKZ-0002">
+
+    <button id="go">Sign &amp; generate tag URL</button>
+    <div class="err" id="err"></div>
+
+    <div class="out">
+      <label for="url">Tag URL — write this to the NFC tag as a URL record</label>
+      <textarea id="url" readonly placeholder="(appears here after signing)"></textarea>
+      <div class="ok-note" id="note"></div>
+    </div>
+  </div>
+
+  <footer><a href="index.html">← back to verifier</a></footer>
+</div>
+
+<script>
+// ============================================================
+// Makozumi tag generator — signs a product payload with the
+// Makozumi ECDSA P-256 PRIVATE key. Runs 100% locally.
+// The verify page (index.html) checks the result with the
+// matching PUBLIC key.
+// ============================================================
+
+const SITE = "https://katsuma0.github.io/makozumi/";
+const $ = (id) => document.getElementById(id);
+
+const bytesToB64url = (bytes) =>
+  btoa(String.fromCharCode(...new Uint8Array(bytes)))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+$("d").value = new Date().toISOString().slice(0, 10);
+
+$("go").addEventListener("click", async () => {
+  $("err").textContent = "";
+  $("note").textContent = "";
+  $("url").value = "";
+  try {
+    const jwk = JSON.parse($("privkey").value.trim());
+    if (!jwk.d) throw new Error("That JWK has no private part ('d') — it looks like the public key.");
+
+    const key = await crypto.subtle.importKey(
+      "jwk", jwk, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]
+    );
+
+    const payload = {
+      v: 1,
+      sn: $("sn").value.trim(),
+      p: $("p").value.trim(),
+      t: $("t").value.trim(),
+      o: $("o").value.trim(),
+      d: $("d").value,
+    };
+    if (!payload.p || !payload.sn) throw new Error("Product name and serial number are required.");
+
+    const payloadB64 = bytesToB64url(new TextEncoder().encode(JSON.stringify(payload)));
+    const sig = await crypto.subtle.sign(
+      { name: "ECDSA", hash: "SHA-256" },
+      key,
+      new TextEncoder().encode(payloadB64)
+    );
+
+    const url = SITE + "#" + payloadB64 + "." + bytesToB64url(sig);
+    $("url").value = url;
+    $("note").textContent = url.length + " characters — fits NTAG215/216 tags. Test it by opening the URL, then write it to the tag with an app like “NFC Tools” (Write → URL record).";
+  } catch (e) {
+    $("err").textContent = e.message;
+  }
+});
+</script>
+</body>
+</html>

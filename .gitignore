@@ -1,0 +1,4 @@
+# never commit private keys
+*private*
+*.key
+keys.json
