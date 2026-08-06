@@ -92,6 +92,12 @@
 </div>
 
 <script>
+// WebCrypto only exists on secure (https) pages — bounce plain-http loads
+// to the always-https GitHub Pages URL.
+if (location.protocol === "http:" && location.hostname !== "localhost") {
+  location.replace("https://katsuma0.github.io/makozumi/generate.html");
+}
+
 // ============================================================
 // Makozumi tag generator — signs a product payload with the
 // Makozumi ECDSA P-256 PRIVATE key. Runs 100% locally.

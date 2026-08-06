@@ -109,6 +109,13 @@
 </div>
 
 <script>
+// WebCrypto only exists on secure (https) pages. If we were served over
+// plain http (e.g. a custom domain without HTTPS enforced yet), bounce to
+// the always-https GitHub Pages URL, keeping the #payload.signature intact.
+if (location.protocol === "http:" && location.hostname !== "localhost") {
+  location.replace("https://katsuma0.github.io/makozumi/" + location.hash);
+}
+
 // ============================================================
 // Makozumi verifier — ECDSA P-256 (NIST curve secp256r1)
 //
