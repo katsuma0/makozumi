@@ -2,3 +2,5 @@
 *private*
 *.key
 keys.json
+.secrets/
+node_modules

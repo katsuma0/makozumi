@@ -1,0 +1,5 @@
+{
+  "_comment": "Makozumi revocation list. Add the serial number of any item whose tag was lost, stolen, cloned, or withdrawn. The verifier fetches this file on every check and shows REVOKED for a listed serial even when its signature is valid. Revoking is the only way to kill a code that has already been issued, because issued codes never expire on their own unless they carry an 'exp' date.",
+  "updated": "2026-08-09",
+  "revoked": []
+}
