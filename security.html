@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<title>Makozumi — Security</title>
+<style>
+  :root {
+    --bg: #f6f2e9; --card: #fdfbf5; --ink: #26221e; --muted: #877f73;
+    --line: #e2dac9; --accent: #c73e2e; --code-bg: #efe9db;
+    --ok: #3f6b52; --bad: #a83226;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16130f; --card: #1e1a15; --ink: #eae3d6; --muted: #9c9384;
+      --line: #37312a; --accent: #e0563f; --code-bg: #2a251e;
+      --ok: #7fb08f; --bad: #e08573;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", Georgia, serif;
+    background: var(--bg); color: var(--ink);
+    display: flex; flex-direction: column; align-items: center; padding: 2.5rem 1rem;
+    line-height: 1.75;
+  }
+  .wrap { width: 100%; max-width: 660px; }
+  h1 { font-size: 1.25rem; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; text-align: center; padding-left: .4em; }
+  .sub { text-align: center; color: var(--muted); font-size: .85rem; letter-spacing: .1em; margin: .5rem 0 1.6rem; }
+  h2 { font-size: 1.05rem; font-weight: 700; margin: 1.8rem 0 .5rem; color: var(--accent); }
+  h3 { font-size: .95rem; font-weight: 700; margin: 1.2rem 0 .3rem; }
+  p, li { font-size: .95rem; margin-bottom: .7rem; }
+  ul, ol { padding-left: 1.3rem; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 5px; padding: 1.7rem; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85em;
+    background: var(--code-bg); border-radius: 3px; padding: .1em .35em;
+  }
+  table { width: 100%; border-collapse: collapse; margin: .8rem 0 1.2rem; font-size: .88rem; }
+  th, td { text-align: left; padding: .55rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 400; font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; }
+  .stopped { color: var(--ok); font-weight: 700; white-space: nowrap; }
+  .open { color: var(--bad); font-weight: 700; white-space: nowrap; }
+  .callout { border-left: 3px solid var(--accent); padding: .3rem 0 .3rem 1rem; margin: 1rem 0; }
+  a { color: var(--accent); }
+  footer { text-align: center; font-size: .8rem; margin-top: 1.2rem; }
+  .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Security</h1>
+  <div class="sub">What a Makozumi check proves — and what it does not</div>
+
+  <div class="card">
+    <p>Makozumi is built on one idea: a code on a product carries a digital
+    signature that only the issuer's private key could have produced, and
+    anyone can check it without being able to produce one. Below is an
+    honest account of every attack we could think of, what the system does
+    about each, and the one attack that no static code can defeat.</p>
+
+    <h2>What an ✓ AUTHENTIC result means</h2>
+    <p>It means exactly this: <strong>the details shown on screen were signed
+    by the holder of the Makozumi private key, and have not been altered by
+    so much as one character since.</strong> It does not, by itself, prove
+    that the physical object in your hand is the one the code was issued
+    for — see cloning below.</p>
+
+    <h2>Attacks and defences</h2>
+    <div class="scroll">
+    <table>
+      <tr><th>Attack</th><th>Status</th><th>How</th></tr>
+
+      <tr>
+        <td>Invent a code for a fake product</td>
+        <td class="stopped">Stopped</td>
+        <td>Requires the private key. Deriving it from the published public key is the elliptic curve discrete logarithm problem — about 2<sup>128</sup> operations.</td>
+      </tr>
+      <tr>
+        <td>Edit a real code (change the owner, date, or item name)</td>
+        <td class="stopped">Stopped</td>
+        <td>The signature covers every byte of the details. One changed character breaks the SHA-256 hash and verification fails.</td>
+      </tr>
+      <tr>
+        <td>Sign a code with the attacker's own key</td>
+        <td class="stopped">Stopped</td>
+        <td>Verification uses only the public keys published in this site, selected by a key id that must be one we recognise.</td>
+      </tr>
+      <tr>
+        <td>Strip the signature, or claim "no algorithm"</td>
+        <td class="stopped">Stopped</td>
+        <td>The algorithm, curve, and hash are fixed in the verifier's code. A code cannot choose them, so the classic <code>alg:none</code> token attack does not exist here.</td>
+      </tr>
+      <tr>
+        <td>Reuse a valid signature on different details</td>
+        <td class="stopped">Stopped</td>
+        <td>The signature is checked against the exact payload it accompanies, not against any part of it.</td>
+      </tr>
+      <tr>
+        <td>Hostile content inside a code (scripts, hidden text, reversed text)</td>
+        <td class="stopped">Stopped</td>
+        <td>Nothing is displayed before the signature verifies; all values are written as plain text, never as markup; control and text-direction characters are stripped; field lengths are capped.</td>
+      </tr>
+      <tr>
+        <td>Oversized or malformed code to crash the checker</td>
+        <td class="stopped">Stopped</td>
+        <td>Length, character set, and signature size are validated before parsing. Any failure shows a clear negative result rather than an error.</td>
+      </tr>
+      <tr>
+        <td>Rewrite the NFC chip to point at a lookalike site</td>
+        <td class="stopped">Stopped, if you lock the tag</td>
+        <td>Lock or password-protect the chip after writing (see below). The verifier also shows the exact site address at the top of every check, so a lookalike domain is visible.</td>
+      </tr>
+      <tr>
+        <td>Embed the real verifier in a fake page to fake a result</td>
+        <td class="stopped">Stopped</td>
+        <td>The page refuses to run inside a frame, and its content security policy forbids framing and all third-party code.</td>
+      </tr>
+      <tr>
+        <td>Tamper with the verifier in transit</td>
+        <td class="stopped">Stopped</td>
+        <td>The site is served over HTTPS only; a plain-http visit is redirected. The page loads no external scripts, fonts, or trackers, so there is no third party to compromise.</td>
+      </tr>
+      <tr>
+        <td>Keep using a code after the item is lost or stolen</td>
+        <td class="stopped">Stopped</td>
+        <td>Its serial is added to the published revocation list, and the checker then reports REVOKED even though the signature is still valid.</td>
+      </tr>
+      <tr>
+        <td>Use a stolen private key indefinitely</td>
+        <td class="stopped">Contained</td>
+        <td>Every code names the key that signed it. A compromised key is retired, a new one published, and codes signed by the old key can be revoked in bulk.</td>
+      </tr>
+      <tr>
+        <td><strong>Copy a genuine code onto another item</strong></td>
+        <td class="open">Not stopped</td>
+        <td>See the section below. This is the real limit of the system.</td>
+      </tr>
+    </table>
+    </div>
+
+    <h2>The one attack cryptography cannot stop</h2>
+    <p>A Makozumi code is a fixed string. Anyone who can read a genuine tag —
+    a customer, a courier, anyone who handles the product — can copy that
+    string and write it to a second chip. Both chips will then verify, because
+    both carry a genuinely signed code. <strong>No signature scheme can prevent
+    this, because the copy is not a forgery; it is the original.</strong></p>
+
+    <div class="callout">
+      <p>What limits the damage today:</p>
+      <ul>
+        <li>Every code carries a unique serial number, shown on every check.
+        Two items bearing the same serial means one of them is a copy.</li>
+        <li>A serial known to be copied can be revoked, which kills every
+        copy of it at once.</li>
+        <li>The chip should be physically fixed to the item so that removing
+        it destroys it.</li>
+      </ul>
+    </div>
+
+    <h3>The proper fix, when it is worth the cost</h3>
+    <p>Chips such as the NTAG 424 DNA compute a fresh cryptographic code on
+    every single tap, using a secret held inside the chip that cannot be read
+    out. A copied string is then useless, because it was only valid for one
+    tap. Checking those codes requires a small server that remembers each
+    chip's tap counter, so it no longer fits on a purely static site — but
+    the design here upgrades to it without changing anything a customer sees.</p>
+
+    <h2>Operating rules that keep this safe</h2>
+    <ol>
+      <li><strong>The private key never leaves your own machine.</strong> It is
+      not in this repository and must never be committed, emailed, or pasted
+      into any site other than the local generator page.</li>
+      <li><strong>Back the key up.</strong> Lose it and no new codes can ever be
+      issued under the current key.</li>
+      <li><strong>Lock every chip after writing it.</strong> In NFC Tools, use
+      "Lock tag" or set a password. An unlocked chip can be rewritten by anyone
+      who can touch it, which is the easiest real-world attack on this system.</li>
+      <li><strong>Use a fresh serial number for every item.</strong> Serials are
+      what make copies detectable.</li>
+      <li><strong>Publish only one official address</strong> and put it on your
+      packaging, so customers know what the real one looks like.</li>
+      <li><strong>If a key is ever exposed</strong>, retire it in the verifier,
+      publish a new key, and revoke the affected serials.</li>
+    </ol>
+
+    <h2>Reporting a problem</h2>
+    <p>If you find a tag that behaves oddly, two items with the same serial, or
+    a website impersonating this one, contact the issuer named on the code
+    before trusting the item.</p>
+  </div>
+
+  <footer><a href="index.html">← back to the verifier</a> · <a href="how-it-works.html">the mathematics</a></footer>
+</div>
+</body>
+</html>

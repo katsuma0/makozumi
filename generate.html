@@ -3,155 +3,290 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Makozumi — Tag Generator (private)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;700&display=swap" rel="stylesheet">
+<meta name="referrer" content="no-referrer">
+<!-- This policy is a security feature, not boilerplate. Every network
+     destination is blocked: no connect-src, no img-src, no form-action, no
+     external scripts. Even if this page were tampered with, it has nowhere
+     to send your private key. -->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+<title>Makozumi — Issuing Tool (private)</title>
 <style>
   :root {
     --bg: #f6f2e9; --card: #fdfbf5; --ink: #26221e; --muted: #877f73;
     --line: #e2dac9; --accent: #c73e2e; --warn-bg: #f6ecd8; --warn: #8a6118;
+    --ok: #3f6b52; --bad: #a83226;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #16130f; --card: #1e1a15; --ink: #eae3d6; --muted: #9c9384;
       --line: #37312a; --accent: #e0563f; --warn-bg: #2e2617; --warn: #d9b36a;
+      --ok: #7fb08f; --bad: #e08573;
     }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", Georgia, serif;
     background: var(--bg); color: var(--ink);
     display: flex; flex-direction: column; align-items: center; padding: 2.5rem 1rem;
+    line-height: 1.6;
   }
-  .wrap { width: 100%; max-width: 560px; }
+  .wrap { width: 100%; max-width: 580px; }
   h1 { font-size: 1.25rem; font-weight: 500; letter-spacing: .4em; text-transform: uppercase; text-align: center; padding-left: .4em; }
   .sub { text-align: center; color: var(--muted); font-size: .85rem; letter-spacing: .1em; margin: .5rem 0 1.4rem; }
   .warn {
     background: var(--warn-bg); color: var(--warn); border: 1px solid currentColor; border-radius: 5px;
-    padding: .8rem 1rem; font-size: .85rem; margin-bottom: 1rem; line-height: 1.5;
+    padding: .8rem 1rem; font-size: .84rem; margin-bottom: 1rem; line-height: 1.55;
   }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 5px; padding: 1.5rem; margin-bottom: 1rem; }
-  label { display: block; font-size: .8rem; color: var(--muted); margin: .9rem 0 .25rem; }
+  label { display: block; font-size: .78rem; color: var(--muted); margin: .9rem 0 .25rem; letter-spacing: .04em; }
   label:first-child { margin-top: 0; }
+  .opt { text-transform: none; font-style: italic; }
   input, textarea {
     width: 100%; padding: .6rem .7rem; border: 1px solid var(--line); border-radius: 3px;
     background: var(--bg); color: var(--ink); font-size: .95rem; font-family: inherit;
   }
-  textarea { font-family: ui-monospace, monospace; font-size: .8rem; min-height: 88px; }
+  textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .8rem; min-height: 84px; resize: vertical; }
+  .row { display: flex; gap: .8rem; }
+  .row > div { flex: 1; }
   button {
     width: 100%; padding: .8rem; margin-top: 1.2rem; border: none; border-radius: 3px;
     background: var(--accent); color: #fff; font-size: .95rem; font-weight: 700;
     letter-spacing: .12em; font-family: inherit; cursor: pointer;
   }
-  .out { margin-top: 1rem; }
-  .out textarea { min-height: 120px; }
-  .err { color: #c0392b; font-size: .85rem; margin-top: .8rem; }
-  .ok-note { color: var(--muted); font-size: .8rem; margin-top: .5rem; }
+  button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); margin-top: .6rem; }
+  .err { color: var(--bad); font-size: .85rem; margin-top: .8rem; font-weight: 700; }
+  .note { color: var(--muted); font-size: .78rem; margin-top: .5rem; line-height: 1.55; }
+  .note.good { color: var(--ok); }
+  .note.bad { color: var(--bad); font-weight: 700; }
+  .steps { font-size: .84rem; color: var(--muted); padding-left: 1.2rem; margin-top: .6rem; }
+  .steps li { margin-bottom: .35rem; }
+  .steps b { color: var(--ink); }
   a { color: var(--accent); }
   footer { text-align: center; font-size: .8rem; margin-top: .5rem; }
+  h2 { font-size: .85rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 400; margin-bottom: .8rem; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Makozumi Generator</h1>
-  <div class="sub">Mint a signed tag for a new product</div>
+  <h1>Makozumi Issuing</h1>
+  <div class="sub">Sign a new item — private tool</div>
 
   <div class="warn">
-    ⚠ Private tool. Signing happens entirely in your browser — nothing is uploaded.
-    Only someone holding the Makozumi <strong>private key</strong> can produce a valid tag;
-    without it this page generates nothing useful.
+    <strong>Keep this page off the public internet.</strong> Signing happens entirely
+    inside your browser and this page is blocked from making any network request at
+    all, so your key cannot leave this device. Anyone holding the private key can
+    issue codes that verify as genuine — treat it like the die that stamps your mark.
   </div>
 
   <div class="card">
-    <label for="privkey">Private key (JWK JSON — paste from your safe storage)</label>
-    <textarea id="privkey" placeholder='{"kty":"EC","crv":"P-256","x":"...","y":"...","d":"..."}'></textarea>
+    <h2>Signing key</h2>
+    <label for="privkey">Private key (JWK) — paste from your safe storage</label>
+    <textarea id="privkey" spellcheck="false" autocomplete="off"
+      placeholder='{"kty":"EC","crv":"P-256","x":"…","y":"…","d":"…"}'></textarea>
+    <label for="kid">Key id <span class="opt">— must match a key published in the verifier</span></label>
+    <input id="kid" value="k1" spellcheck="false" autocomplete="off">
+  </div>
 
-    <label for="p">Product name</label>
-    <input id="p" placeholder="Katsuma 2026 Log">
+  <div class="card">
+    <h2>Item details</h2>
+    <label for="p">Item name</label>
+    <input id="p" placeholder="Katsuma 2026 Log" autocomplete="off">
 
-    <label for="t">Product type</label>
-    <input id="t" placeholder="Notebook">
+    <label for="t">Type <span class="opt">— optional</span></label>
+    <input id="t" placeholder="Notebook" autocomplete="off">
 
-    <label for="o">Made by</label>
-    <input id="o" value="Katsuma Onishi">
+    <label for="o">Issued by</label>
+    <input id="o" value="Katsuma Onishi" autocomplete="off">
 
-    <label for="d">Date</label>
-    <input id="d" type="date">
+    <div class="row">
+      <div>
+        <label for="d">Issue date</label>
+        <input id="d" type="date">
+      </div>
+      <div>
+        <label for="exp">Valid until <span class="opt">— optional</span></label>
+        <input id="exp" type="date">
+      </div>
+    </div>
 
-    <label for="sn">Serial number</label>
-    <input id="sn" placeholder="MKZ-0002">
+    <label for="sn">Serial number <span class="opt">— unique per item, never reuse</span></label>
+    <input id="sn" placeholder="MKZ-0002" autocomplete="off">
+    <button id="next-serial" class="ghost" type="button">Suggest an unused serial</button>
 
-    <button id="go">Sign &amp; generate tag URL</button>
+    <label for="b">Batch or edition <span class="opt">— optional</span></label>
+    <input id="b" placeholder="First edition" autocomplete="off">
+
+    <label for="n">Note <span class="opt">— optional</span></label>
+    <input id="n" placeholder="Hand-bound, 120 pages" autocomplete="off">
+
+    <button id="go" type="button">Sign &amp; generate tag link</button>
     <div class="err" id="err"></div>
+  </div>
 
-    <div class="out">
-      <label for="url">Tag URL — write this to the NFC tag as a URL record</label>
-      <textarea id="url" readonly placeholder="(appears here after signing)"></textarea>
-      <div class="ok-note" id="note"></div>
+  <div class="card">
+    <h2>Result</h2>
+    <label for="url">Tag link — write this to the chip as a URL record</label>
+    <textarea id="url" readonly placeholder="(appears here after signing)"></textarea>
+    <div class="note" id="note"></div>
+    <label for="code">Code only — for pasting into the verifier</label>
+    <textarea id="code" readonly placeholder="(appears here after signing)"></textarea>
+    <div class="note">
+      <strong>Writing the chip, safely:</strong>
+      <ol class="steps">
+        <li>Open the tag link in a browser first and confirm it reads <b>✓ AUTHENTIC</b>.</li>
+        <li>In <b>NFC Tools</b>: Write → Add a record → <b>URL</b> → paste → Write.</li>
+        <li><b>Lock the tag</b> (Other → Lock tag, or set a password). An unlocked chip
+        can be rewritten by anyone who can touch your product.</li>
+        <li>Fix the chip to the item so that removing it destroys it.</li>
+        <li>Record the serial number in your own list so duplicates are detectable.</li>
+      </ol>
     </div>
   </div>
 
-  <footer><a href="index.html">← back to verifier</a></footer>
+  <footer><a href="index.html">← back to the verifier</a> · <a href="security.html">security notes</a></footer>
 </div>
 
 <script>
-// WebCrypto only exists on secure (https) pages — bounce plain-http loads
-// to the always-https GitHub Pages URL.
-if (location.protocol === "http:" && !["localhost", "127.0.0.1"].includes(location.hostname)) {
-  location.replace("https://katsuma0.github.io/makozumi/generate.html");
+// ============================================================
+// Makozumi issuing tool. Signs an item payload with the Makozumi
+// ECDSA P-256 private key, entirely locally. Kept self-contained so it
+// still works when this file is opened straight from disk, offline.
+// ============================================================
+"use strict";
+
+var SITE = "https://katsuma0.github.io/makozumi/";
+var MAX_FIELD = 160;
+// Practical chip capacities, in bytes available for the URL record.
+var CAPACITY = [
+  { name: "NTAG213", bytes: 132 },
+  { name: "NTAG215", bytes: 492 },
+  { name: "NTAG216", bytes: 872 }
+];
+
+function $(id) { return document.getElementById(id); }
+
+function bytesToB64url(buf) {
+  var bytes = new Uint8Array(buf), s = "";
+  for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-// ============================================================
-// Makozumi tag generator — signs a product payload with the
-// Makozumi ECDSA P-256 PRIVATE key. Runs 100% locally.
-// The verify page (index.html) checks the result with the
-// matching PUBLIC key.
-// ============================================================
-
-const SITE = "https://katsuma0.github.io/makozumi/";
-const $ = (id) => document.getElementById(id);
-
-const bytesToB64url = (bytes) =>
-  btoa(String.fromCharCode(...new Uint8Array(bytes)))
-    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+// Same cleaning the verifier applies, done here so what you sign is exactly
+// what a customer will see.
+function clean(value) {
+  return String(value == null ? "" : value)
+    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, "")
+    .trim()
+    .slice(0, MAX_FIELD);
+}
 
 $("d").value = new Date().toISOString().slice(0, 10);
 
-$("go").addEventListener("click", async () => {
+// Serial suggestions are stored locally so you do not accidentally reuse one.
+var ISSUED_KEY = "makozumi.issued.serials";
+function loadIssued() {
+  try { return JSON.parse(localStorage.getItem(ISSUED_KEY)) || []; }
+  catch (e) { return []; }
+}
+function rememberIssued(sn) {
+  try {
+    var list = loadIssued();
+    if (list.indexOf(sn) === -1) { list.push(sn); localStorage.setItem(ISSUED_KEY, JSON.stringify(list)); }
+  } catch (e) { /* private browsing: suggestions simply will not persist */ }
+}
+
+$("next-serial").addEventListener("click", function () {
+  var list = loadIssued(), max = 0;
+  for (var i = 0; i < list.length; i++) {
+    var m = /^MKZ-(\d+)$/.exec(list[i]);
+    if (m) { var n = parseInt(m[1], 10); if (n > max) max = n; }
+  }
+  // MKZ-0001 was issued before this tool tracked serials.
+  if (max < 1) max = 1;
+  $("sn").value = "MKZ-" + String(max + 1).padStart(4, "0");
+});
+
+$("go").addEventListener("click", async function () {
   $("err").textContent = "";
   $("note").textContent = "";
+  $("note").className = "note";
   $("url").value = "";
-  try {
-    const jwk = JSON.parse($("privkey").value.trim());
-    if (!jwk.d) throw new Error("That JWK has no private part ('d') — it looks like the public key.");
+  $("code").value = "";
 
-    const key = await crypto.subtle.importKey(
+  try {
+    var jwkText = $("privkey").value.trim();
+    if (!jwkText) throw new Error("Paste your private key first.");
+
+    var jwk;
+    try { jwk = JSON.parse(jwkText); }
+    catch (e) { throw new Error("The private key is not valid JSON."); }
+    if (!jwk || jwk.kty !== "EC" || jwk.crv !== "P-256") {
+      throw new Error("That key is not an ECDSA P-256 key.");
+    }
+    if (!jwk.d) throw new Error("That key has no private part ('d') — it is the public key.");
+
+    var kid = clean($("kid").value) || "k1";
+    var sn = clean($("sn").value);
+    var name = clean($("p").value);
+    var issuer = clean($("o").value);
+    if (!name) throw new Error("Item name is required.");
+    if (!sn) throw new Error("Serial number is required — it is what makes copies detectable.");
+    if (!issuer) throw new Error("Issued by is required.");
+
+    var issued = loadIssued();
+    if (issued.indexOf(sn) !== -1 &&
+        !confirm("Serial " + sn + " has already been issued from this device.\n\nReusing a serial makes copies impossible to detect. Sign it anyway?")) {
+      return;
+    }
+
+    var expiry = $("exp").value;
+    var issueDate = $("d").value;
+    if (expiry && issueDate && expiry < issueDate) {
+      throw new Error("The expiry date is before the issue date.");
+    }
+
+    var payload = { v: 2, kid: kid, sn: sn, p: name, o: issuer };
+    var t = clean($("t").value); if (t) payload.t = t;
+    if (issueDate) payload.d = issueDate;
+    if (expiry) payload.exp = expiry;
+    var b = clean($("b").value); if (b) payload.b = b;
+    var n = clean($("n").value); if (n) payload.n = n;
+
+    var key = await crypto.subtle.importKey(
       "jwk", jwk, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]
     );
 
-    const payload = {
-      v: 1,
-      sn: $("sn").value.trim(),
-      p: $("p").value.trim(),
-      t: $("t").value.trim(),
-      o: $("o").value.trim(),
-      d: $("d").value,
-    };
-    if (!payload.p || !payload.sn) throw new Error("Product name and serial number are required.");
-
-    const payloadB64 = bytesToB64url(new TextEncoder().encode(JSON.stringify(payload)));
-    const sig = await crypto.subtle.sign(
+    var payloadB64 = bytesToB64url(new TextEncoder().encode(JSON.stringify(payload)));
+    var sig = await crypto.subtle.sign(
       { name: "ECDSA", hash: "SHA-256" },
       key,
       new TextEncoder().encode(payloadB64)
     );
 
-    const url = SITE + "#" + payloadB64 + "." + bytesToB64url(sig);
+    var token = payloadB64 + "." + bytesToB64url(sig);
+    var url = SITE + "#" + token;
+
     $("url").value = url;
-    $("note").textContent = url.length + " characters — fits NTAG215/216 tags. Test it by opening the URL, then write it to the tag with an app like “NFC Tools” (Write → URL record).";
+    $("code").value = token;
+    rememberIssued(sn);
+
+    // Tell the issuer plainly whether this will fit on the chip they own.
+    var size = new TextEncoder().encode(url).length;
+    var fits = [];
+    for (var i = 0; i < CAPACITY.length; i++) {
+      if (size + 8 <= CAPACITY[i].bytes) fits.push(CAPACITY[i].name);
+    }
+    var note = $("note");
+    if (fits.length) {
+      note.className = "note good";
+      note.textContent = size + " bytes — fits " + fits.join(", ") + ".";
+    } else {
+      note.className = "note bad";
+      note.textContent = size + " bytes — too long for common NTAG chips. Shorten the item name or note.";
+    }
   } catch (e) {
-    $("err").textContent = e.message;
+    $("err").textContent = e.message || String(e);
   }
 });
 </script>

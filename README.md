@@ -1,59 +1,120 @@
 # Makozumi 真
 
-Cryptographic product authentication with NFC tags — a fully static site that
-verifies ECDSA-signed tags, deployable on GitHub Pages.
+**Truly Genuine** — a universal authenticity check for physical items. Tap an
+NFC tag, and a signed record of what the item is, who issued it, and when
+appears instantly, verified by public-key cryptography. No server, no
+database, no accounts.
 
-Every Makozumi product carries an NFC tag holding a URL. Tapping the tag opens
-the verifier, which checks the tag's **ECDSA P-256 digital signature** against
-the public key embedded in the site. Only the holder of the private key (you)
-can create valid tags; anyone can verify them.
+Live at **https://katsuma0.github.io/makozumi/**
+
+## How it works in one paragraph
+
+Each item carries a code containing its details plus an **ECDSA P-256**
+signature made with a private key that only the issuer holds. The code is
+written to an NFC chip as a URL. Tapping the chip opens the verifier, which
+checks the signature against the public key published in this site — with no
+button presses — and shows ✓ AUTHENTIC or ✕ NOT AUTHENTIC. Anyone can verify;
+only the private-key holder can issue. That asymmetry rests on the elliptic
+curve discrete logarithm problem.
 
 ## Pages
 
-| Page | Purpose |
+| Page | What it does |
 |---|---|
-| `index.html` | Verifier — opens when a tag is tapped, shows ✓ AUTHENTIC + product info, or ✕ NOT AUTHENTIC. Includes a Web NFC scan button (Android Chrome). |
-| `generate.html` | Private minting tool — paste your private key (kept **offline**, never in this repo), fill in product details, get a signed tag URL. Signing runs entirely in your browser. |
-| `how-it-works.html` | Course-style explanation of the ECDSA math (elliptic curves, ECDLP, sign/verify equations). |
+| `index.html` | The verifier. Auto-checks a code from the tapped URL, a paste, or a Web NFC scan. |
+| `generate.html` | Private issuing tool. Signs new items locally; blocked from all network access so the key cannot leave your device. |
+| `security.html` | Full threat model — every attack considered, what stops it, and the one that nothing stops. |
+| `how-it-works.html` | The mathematics: curves, ECDLP, the sign and verify equations. |
+| `revoked.json` | Published revocation list, checked on every verification. |
+| `tests/attack-suite.mjs` | 60 automated attacks run against the real pages in a real browser. |
 
-## Setup: enable GitHub Pages
+## Issuing a new item
 
-1. On GitHub: **Settings → Pages → Source: Deploy from a branch → `main` / root**.
-2. The site goes live at `https://katsuma0.github.io/makozumi/`.
+1. Open `generate.html` (locally is fine — it works offline from disk).
+2. Paste your private key JWK, fill in the item details, press **Sign**.
+3. Open the generated link in a browser and confirm it reads ✓ AUTHENTIC.
+4. In **NFC Tools**: Write → Add a record → **URL** → paste → Write.
+5. **Lock the tag.** An unlocked chip can be rewritten by anyone who can touch
+   your product — this is the easiest real-world attack on the system.
 
-## Writing a tag to an NFC chip
+Use **NTAG215** or **NTAG216** chips. A typical code URL is ~250–300 bytes;
+NTAG213 (144 bytes) is too small. The issuing tool reports which chips fit.
 
-1. Open `generate.html`, paste your private key JWK, fill in the product fields,
-   and copy the generated URL. (Or use the sample URL below for the first product.)
-2. On your phone, install **NFC Tools** (iOS/Android).
-3. **Write → Add a record → URL/URI** → paste the tag URL → **Write** → hold the
-   blank tag to the phone.
-4. Tap the tag with any phone to test: the verifier should open and show ✓ AUTHENTIC.
-
-Tag URLs are ~250–300 characters. Use **NTAG215** (504 bytes) or **NTAG216**
-chips; NTAG213 (144 bytes) is too small.
-
-## Tag format
+## Code format
 
 ```
 https://katsuma0.github.io/makozumi/#<base64url(payload)>.<base64url(signature)>
 ```
 
-- **payload** — compact JSON: `{"v":1,"sn":"MKZ-0001","p":"<product>","t":"<type>","o":"<maker>","d":"YYYY-MM-DD"}`
-- **signature** — 64-byte ECDSA P-256 signature (r‖s, IEEE P1363) over the
-  base64url payload string, hashed with SHA-256.
+The payload is compact JSON. Only `p` (item), `sn` (serial), and `o` (issuer)
+are required; everything else is optional, which is what makes the format
+usable for products, certificates, tickets, or documents alike.
 
-The data rides in the URL *fragment* (`#…`), so it is never sent to any server —
-verification is fully client-side.
+| Field | Meaning |
+|---|---|
+| `v` | Format version |
+| `kid` | Which issuing key signed this (enables key rotation) |
+| `sn` | Serial number — unique per item, never reused |
+| `p` | Item name |
+| `t` | Type or category |
+| `o` | Issued by |
+| `d` | Issue date |
+| `exp` | Valid until — after this, the verifier reports EXPIRED |
+| `b` | Batch or edition |
+| `n` | Free-text note |
 
-## Key management (important)
+The signature is 64 bytes (r‖s, IEEE P1363) over the base64url payload string,
+hashed with SHA-256. The code rides in the URL **fragment**, so it is never
+sent to any server — verification is entirely client-side.
 
-- The **public key** is embedded in `index.html`. It can only *verify*.
-- The **private key** is *not in this repository* and must never be committed.
-  Store the private JWK somewhere safe (password manager). If it ever leaks,
-  generate a new pair, update the public key in `index.html`, and re-issue tags.
+## Security summary
 
-## First product
+Read `security.html` for the full account. In short:
 
-Serial `MKZ-0001` — *Katsuma 2026 Log* (notebook) by Katsuma Onishi, issued
-2026-08-06. Its signed tag URL is in [`samples/MKZ-0001.txt`](samples/MKZ-0001.txt).
+**Stopped:** inventing codes · editing a signed code · signing with another key ·
+algorithm-confusion tricks · reusing a signature on different data · scripts or
+hidden text inside a payload · oversized or malformed input · framing the
+verifier inside a fake page · third-party code (there is none) · using a code
+after the item is reported lost (revocation) · indefinite use of a stolen key
+(key rotation).
+
+**Not stopped — and unstoppable by cryptography alone:** copying a genuine code
+onto a second chip. The copy is not a forgery; it is the original. Unique
+serials make duplicates detectable, revocation kills a copied serial, and
+NTAG 424 DNA chips (which compute a fresh code on every tap) are the real fix
+when the value justifies the cost.
+
+### Key management
+
+- The **public key** is in `assets/makozumi.js`. It can only verify.
+- The **private key is not in this repository** and must never be committed.
+  Store it in a password manager and back it up — losing it means no new codes
+  can ever be issued under that key.
+- If a key is exposed: mark it `retired` in `assets/makozumi.js`, publish a new
+  key under a new `kid`, and add the affected serials to `revoked.json`.
+
+### Revoking an item
+
+Add its serial to the `revoked` array in `revoked.json` and push. The verifier
+fetches this file on every check and reports **REVOKED** for a listed serial
+even though its signature is still valid.
+
+## Running the tests
+
+```bash
+npm install playwright-core
+node tests/attack-suite.mjs
+```
+
+Without an issuing key the suite runs its negative and page-defence checks and
+skips the rest. For the full run, supply the key out of band:
+
+```bash
+MAKOZUMI_PRIVATE_JWK='{"kty":"EC",...}' node tests/attack-suite.mjs
+# or place it in .secrets/issuer.jwk (git-ignored)
+```
+
+## Deployment
+
+Pushing to `main` deploys to GitHub Pages via `.github/workflows/pages.yml`.
+The site is entirely static and loads no external scripts, fonts, or trackers.
